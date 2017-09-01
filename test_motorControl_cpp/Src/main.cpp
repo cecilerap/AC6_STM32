@@ -42,6 +42,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+#include "Math.h"
 #include "WheelSide.h"
 /* USER CODE END Includes */
 
@@ -105,32 +106,10 @@ float distanceDes = 3000;
 float angleDes = 0;
 float orientationDes = angleDes  * 663*270/360/95;
 
-PID linearPositionPID;
-PID angularPositionPID;
-PID linearSpeedPID;
-PID angularSpeedPID;
-
-/*
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-
-	if(GPIO_Pin==leftFront_pinA_Pin)
-	{
-		pulseLeftFront = countPulse(leftFront_pinB_GPIO_Port, leftFront_pinB_Pin, pulseLeftFront);
-	}
-	if(GPIO_Pin==rightFront_pinA_Pin)
-	{
-		pulseRightFront = countPulse(rightFront_pinB_GPIO_Port, rightFront_pinB_Pin, pulseRightFront);
-	}
-	if(GPIO_Pin==leftBack_pinA_Pin)
-	{
-		pulseLeftBack = countPulse(leftBack_pinB_GPIO_Port, leftBack_pinB_Pin, pulseLeftBack);
-	}
-	if(GPIO_Pin==rightBack_pinA_Pin)
-	{
-		pulseRightBack = countPulse(rightBack_pinB_GPIO_Port, rightBack_pinB_Pin, pulseRightBack);
-	}
-}*/
-
+PID linearPositionPID(4,0.000,6);
+PID angularPositionPID(3,0,0);
+PID linearSpeedPID(0.7,0,0);
+PID angularSpeedPID(0.3,0,0);
 
 Wheel leftFrontWheel(leftFront_PWM_GPIO_Port, leftFront_PWM_Pin, leftFront_Dir_GPIO_Port, leftFront_Dir_Pin,
 	  		leftFront_pinA_GPIO_Port, leftFront_pinA_Pin, leftFront_pinB_GPIO_Port, leftFront_pinB_Pin, &htim3, TIM_CHANNEL_1);
@@ -165,12 +144,37 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	}
 }
 
+float limitSpeed(float command, float speedMeas)
+{
+    float acc = command - speedMeas;
+    if (acc > accLimit)
+    {
+      command = speedMeas + accLimit;
+    }
+    if (acc < -accLimit)
+    {
+      command = speedMeas - accLimit;
+    }
+    if (command > speedLimit)
+    {
+      command = speedLimit;
+    }
+    if (command < -speedLimit)
+    {
+      command = -speedLimit;
+    }
+    return command;
+}
+PID coucou;
+
 PID leftPID(0.5,0,0);
 PID rightPID(0.5,0,0);
 float leftSpeedMeas = 0;
 float rightSpeedMeas = 0;
 float speedDes = 200;
 uint32_t time = 0.01;
+
+
 /* USER CODE END 0 */
 
 int main(void)
@@ -231,12 +235,76 @@ int main(void)
 	/*leftWheel.run(22);
 	rightWheel.run(22);*/
 
-	leftWheel.run(leftPID.computePID(speedDes - leftWheel.getSpeedMeas()));
-	rightWheel.run(rightPID.computePID(speedDes - rightWheel.getSpeedMeas()));
+	/*leftWheel.run(leftPID.computePID(speedDes - leftWheel.getSpeedMeas()));
+	rightWheel.run(rightPID.computePID(speedDes - rightWheel.getSpeedMeas()));*/
 
-	if(time >= 0.05)
+	if(posReached ==0)
 	{
-		time = 0;
+		leftPulse = leftWheel.getPulse();
+		rightPulse = rightWheel.getPulse();
+		leftSpeed = leftWheel.getSpeedMeas();
+		rightSpeed = rightWheel.getSpeedMeas();
+
+		linearPosition = (rightPulse + leftPulse)/2;
+		angularPosition = rightPulse - leftPulse;
+
+		errorDistance = distanceDes - linearPosition;
+		errorAngle = orientationDes - angularPosition;
+
+		if(errorDistance < 10) //orientation correction, position is reached
+		{
+			errorDistance = 0;
+			linearPositionPID.resetPID();
+
+			if(fabs(errorAngle) < 5)
+			{
+				printf("angle reached\t");
+				errorAngle = 0;
+				angularPositionPID.resetPID();
+				posReached = 1;
+			}
+		}
+
+		speedLinearDesired = linearPositionPID.computePID(errorDistance);
+		speedAngularDesired = angularPositionPID.computePID(errorAngle);
+
+		linearSpeed = (rightSpeed + leftSpeed)/2;
+		angularSpeed = rightSpeed - leftSpeed;
+
+		if(linearPositionPID.isComputed() && angularPositionPID.isComputed())
+		{
+			linearPositionPID.isComputed_ = false;
+			angularPositionPID.isComputed_ = false;
+
+			speedLinearDesiredAf = limitSpeed(speedLinearDesired, linearSpeed);
+			speedAngularDesiredAf = limitSpeed(speedAngularDesired, angularSpeed);
+
+			errorLinearSpeed = speedLinearDesiredAf - linearSpeed;
+			errorAngularSpeed = speedAngularDesiredAf - angularSpeed;
+
+			commandLinear = linearSpeedPID.computePID(errorLinearSpeed);
+			commandAngular = angularSpeedPID.computePID(errorAngularSpeed);
+
+			if(linearSpeedPID.isComputed() && angularSpeedPID.isComputed())
+			{
+				linearSpeedPID.isComputed_ = false;
+				angularSpeedPID.isComputed_ = false;
+
+				rightCommand = commandLinear + commandAngular;
+				leftCommand = commandLinear - commandAngular;
+
+				rightWheel.run(rightCommand);
+				leftWheel.run(leftCommand);
+			}
+		}
+
+	}
+	else
+	{
+		leftWheel.stop();
+		rightWheel.stop();
+		break;
+	}
 
 		//sprintf((char *)buffer, "%i\n\r", rightFrontWheel.getPulse())
 
@@ -246,8 +314,8 @@ int main(void)
 		//sprintf((char *)buffer, "%i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse());
 		//sprintf((char *)buffer, "%i \t %i \n\r", (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
 
-		sprintf((char *)buffer, "%i \t %i \t %i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse(), (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
-	}
+	sprintf((char *)buffer, "%i \t %i \t %i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse(), (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
+
 
 	HAL_UART_Transmit(&huart3, buffer, strlen((char *)buffer), 0xFFFFF);
   }
