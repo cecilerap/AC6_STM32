@@ -73,9 +73,9 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-uint32_t pulseLeftFront, pulseRightFront, pulseLeftBack, pulseRightBack = 0;
-uint8_t dirLeftFront, dirRightFront, dirLeftBack, dirRightBack = 0;
-/*
+int pulseLeftFront, pulseLeftBack, pulseRightFront, pulseRightBack = 0;
+
+
 bool posReached = 0;;
 float linearPosition = 0;
 float angularPosition = 0;
@@ -99,10 +99,8 @@ float speedLinearDesiredAf = 0;
 float speedAngularDesiredAf = 0;
 
 float accLimit = 30;
-float speedLimit = 1000;*/
+float speedLimit = 1000;
 
-
-/*
 float distanceDes = 3000;
 float angleDes = 0;
 float orientationDes = angleDes  * 663*270/360/95;
@@ -110,44 +108,8 @@ float orientationDes = angleDes  * 663*270/360/95;
 PID linearPositionPID;
 PID angularPositionPID;
 PID linearSpeedPID;
-PID angularSpeedPID;*/
-/*
-int countPulse(GPIO_TypeDef* port, uint16_t pin, uint32_t pulse)
-{
-	uint8_t pinB = HAL_GPIO_ReadPin(port, pin);
-	if(pinB==1)
-	{
-		pulse++;
-	}
-	else
-	{
-		pulse--;
-	}
-	return pulse;
-}*/
-/*
-float limitSpeed(float command, float speedMeas)
-{
-    float acc = command - speedMeas;
+PID angularSpeedPID;
 
-    if (acc > accLimit)
-    {
-      command = speedMeas + accLimit;
-    }
-    if (acc < -accLimit)
-    {
-      command = speedMeas - accLimit;
-    }
-    if (command > speedLimit)
-    {
-      command = speedLimit;
-    }
-    if (command < -speedLimit)
-    {
-      command = -speedLimit;
-    }
-    return command;
-}*/
 /*
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
@@ -169,37 +131,19 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	}
 }*/
 
+
 Wheel leftFrontWheel(leftFront_PWM_GPIO_Port, leftFront_PWM_Pin, leftFront_Dir_GPIO_Port, leftFront_Dir_Pin,
 	  		leftFront_pinA_GPIO_Port, leftFront_pinA_Pin, leftFront_pinB_GPIO_Port, leftFront_pinB_Pin, &htim3, TIM_CHANNEL_1);
-Wheel rightFrontWheel(leftBack_PWM_GPIO_Port, leftBack_PWM_Pin, leftBack_Dir_GPIO_Port, leftBack_Dir_Pin,
+Wheel leftBackWheel(leftBack_PWM_GPIO_Port, leftBack_PWM_Pin, leftBack_Dir_GPIO_Port, leftBack_Dir_Pin,
 	  		leftBack_pinA_GPIO_Port, leftBack_pinA_Pin, leftBack_pinB_GPIO_Port, leftBack_pinB_Pin, &htim3, TIM_CHANNEL_3);
-Wheel leftBackWheel(rightFront_PWM_GPIO_Port, rightFront_PWM_Pin, rightFront_Dir_GPIO_Port, rightFront_Dir_Pin,
-	  		rightFront_pinA_GPIO_Port, rightFront_pinA_Pin, rightFront_pinB_GPIO_Port, rightFront_pinB_Pin, &htim3, TIM_CHANNEL_2);
+Wheel rightFrontWheel(rightFront_PWM_GPIO_Port, rightFront_PWM_Pin, rightFront_Dir_GPIO_Port, rightFront_Dir_Pin,
+	  		rightFront_pinA_GPIO_Port, rightFront_pinA_Pin, rightFront_pinB_GPIO_Port, rightFront_pinB_Pin, &htim3, TIM_CHANNEL_4);
 Wheel rightBackWheel(rightBack_PWM_GPIO_Port, rightBack_PWM_Pin, rightBack_Dir_GPIO_Port, rightBack_Dir_Pin,
-	  		rightBack_pinA_GPIO_Port, rightBack_pinA_Pin, rightBack_pinB_GPIO_Port, rightBack_pinB_Pin, &htim3, TIM_CHANNEL_4);
+	  		rightBack_pinA_GPIO_Port, rightBack_pinA_Pin, rightBack_pinB_GPIO_Port, rightBack_pinB_Pin, &htim3, TIM_CHANNEL_2);
 
 WheelSide leftWheel(leftFrontWheel, leftBackWheel);
 WheelSide rightWheel(rightFrontWheel, rightBackWheel);
-/*
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
-	if(GPIO_Pin==leftFront_pinA_Pin)
-	{
-		leftFrontWheel.countPulse();
-	}
-	if(GPIO_Pin==rightFront_pinA_Pin)
-	{
-		rightFrontWheel.countPulse();
-	}
-	if(GPIO_Pin==leftBack_pinA_Pin)
-	{
-		leftBackWheel.countPulse();
-	}
-	if(GPIO_Pin==rightBack_pinA_Pin)
-	{
-		rightBackWheel.countPulse();
-	}
-}*/
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
@@ -221,6 +165,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	}
 }
 
+PID leftPID(0.5,0,0);
+PID rightPID(0.5,0,0);
+float leftSpeedMeas = 0;
+float rightSpeedMeas = 0;
+float speedDes = 200;
+uint32_t time = 0.01;
 /* USER CODE END 0 */
 
 int main(void)
@@ -260,26 +210,6 @@ int main(void)
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3); //leftBack
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);  //rightFront
 
-  //create wheels
-/*  WheelSide leftWheel(leftFront_PWM_GPIO_Port, leftFront_PWM_Pin, leftFront_Dir_GPIO_Port, leftFront_Dir_Pin,
-  		leftFront_pinA_GPIO_Port, leftFront_pinA_Pin, leftFront_pinB_GPIO_Port, leftFront_pinB_Pin, &htim3, TIM_CHANNEL_1,
-  		leftBack_PWM_GPIO_Port, leftBack_PWM_Pin, leftBack_Dir_GPIO_Port, leftBack_Dir_Pin,
-  		leftBack_pinA_GPIO_Port, leftBack_pinA_Pin, leftBack_pinB_GPIO_Port, leftBack_pinB_Pin, &htim3, TIM_CHANNEL_3);
-
-  WheelSide rightWheel(rightFront_PWM_GPIO_Port, rightFront_PWM_Pin, rightFront_Dir_GPIO_Port, rightFront_Dir_Pin,
-  		rightFront_pinA_GPIO_Port, rightFront_pinA_Pin, rightFront_pinB_GPIO_Port, rightFront_pinB_Pin, &htim3, TIM_CHANNEL_2,
-  		rightBack_PWM_GPIO_Port, rightBack_PWM_Pin, rightBack_Dir_GPIO_Port, rightBack_Dir_Pin,
-  		rightBack_pinA_GPIO_Port, rightBack_pinA_Pin, rightBack_pinB_GPIO_Port, rightBack_pinB_Pin, &htim3, TIM_CHANNEL_4);
-*/
-
-  //Set motor direction
- /* HAL_GPIO_WritePin(leftFront_Dir_GPIO_Port, leftFront_Dir_Pin,GPIO_PIN_SET);
-  HAL_GPIO_WritePin(rightFront_Dir_GPIO_Port, rightFront_Dir_Pin,GPIO_PIN_SET);
-  HAL_GPIO_WritePin(leftBack_Dir_GPIO_Port, leftBack_Dir_Pin,GPIO_PIN_SET);
-  HAL_GPIO_WritePin(rightBack_Dir_GPIO_Port, rightBack_Dir_Pin,GPIO_PIN_SET);*/
-
-  //HAL_TIM_Encoder_Start(&htim3,TIM_CHANNEL_ALL);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -291,25 +221,35 @@ int main(void)
   /* USER CODE BEGIN 3 */
 	uint8_t buffer[50];
 
-/*	leftFrontWheel.run(-35);
-	rightFrontWheel.run(-45);
-	leftBackWheel.run(-35);
-	rightBackWheel.run(-45);
+	time = HAL_GetTick();
 
-	sprintf((char *)buffer, "%i %i %i %i \n\r", leftFrontWheel.getPulse(), rightFrontWheel.getPulse(), leftBackWheel.getPulse(), rightBackWheel.getPulse());
-	HAL_UART_Transmit(&huart3, buffer, strlen((char *)buffer), 0xFFFFF);*/
+	/*leftFrontWheel.run(30);
+	rightFrontWheel.run(30);
+	leftBackWheel.run(30);
+	rightBackWheel.run(30);*/
 
-	/*leftWheel.run(-35);
-	rightWheel.run(-45);
+	/*leftWheel.run(22);
+	rightWheel.run(22);*/
 
-	sprintf((char *)buffer, "%.2f %.2f \n\r", leftWheel.getSpeedMeas(), rightWheel.getSpeedMeas());
-	HAL_UART_Transmit(&huart3, buffer, strlen((char *)buffer), 0xFFFFF);*/
+	leftWheel.run(leftPID.computePID(speedDes - leftWheel.getSpeedMeas()));
+	rightWheel.run(rightPID.computePID(speedDes - rightWheel.getSpeedMeas()));
 
-	//sprintf((char *)buffer, "%i %i %i %i \n\r", pulseLeftFront, pulseRightFront, pulseLeftBack, pulseRightBack);
-	//HAL_UART_Transmit(&huart3, buffer, strlen((char *)buffer), 0xFFFFF);
+	if(time >= 0.05)
+	{
+		time = 0;
 
+		//sprintf((char *)buffer, "%i\n\r", rightFrontWheel.getPulse())
 
-	//HAL_Delay(1000);
+		//sprintf((char *)buffer, "%i %i %i %i \n\r", leftFrontWheel.getPulse(), rightFrontWheel.getPulse(), leftBackWheel.getPulse(), rightBackWheel.getPulse());
+		//sprintf((char *)buffer, "%i %i %i %i \n\r", (int)leftFrontWheel.getSpeedMeas(), (int)rightFrontWheel.getSpeedMeas(), (int)leftBackWheel.getSpeedMeas(), (int)rightBackWheel.getSpeedMeas());
+
+		//sprintf((char *)buffer, "%i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse());
+		//sprintf((char *)buffer, "%i \t %i \n\r", (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
+
+		sprintf((char *)buffer, "%i \t %i \t %i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse(), (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
+	}
+
+	HAL_UART_Transmit(&huart3, buffer, strlen((char *)buffer), 0xFFFFF);
   }
   /* USER CODE END 3 */
 
@@ -485,9 +425,6 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, leftFront_Dir_Pin|rightFront_Dir_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(leftBack_Dir_GPIO_Port, leftBack_Dir_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -511,13 +448,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PB0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : leftBack_pinA_Pin rightFront_pinB_Pin */
   GPIO_InitStruct.Pin = leftBack_pinA_Pin|rightFront_pinB_Pin;

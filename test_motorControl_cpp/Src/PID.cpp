@@ -46,7 +46,7 @@ float PID::computePID(float error)
     isComputed_ = false;
     uint32_t timer = HAL_GetTick();
 
-    //if(timer_.read() > PID_TIME_SAMPLING)
+    if(timer > PID_TIME_SAMPLING)
     {
         isComputed_ = true;
         timer = 0;

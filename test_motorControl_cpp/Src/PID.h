@@ -20,7 +20,6 @@ public:
     float computePID(float error);
     bool isComputed();
     void resetPID();
-    float getSpeedError();
 
     void setParam(float Kp, float Ki, float Kd);
     bool isComputed_;
