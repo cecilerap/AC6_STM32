@@ -10,12 +10,14 @@ C_SRCS += \
 
 CPP_SRCS += \
 ../Src/PID.cpp \
+../Src/Robot.cpp \
 ../Src/Wheel.cpp \
 ../Src/WheelSide.cpp \
 ../Src/main.cpp 
 
 OBJS += \
 ./Src/PID.o \
+./Src/Robot.o \
 ./Src/Wheel.o \
 ./Src/WheelSide.o \
 ./Src/main.o \
@@ -30,6 +32,7 @@ C_DEPS += \
 
 CPP_DEPS += \
 ./Src/PID.d \
+./Src/Robot.d \
 ./Src/Wheel.d \
 ./Src/WheelSide.d \
 ./Src/main.d 

@@ -44,6 +44,7 @@
 #include <string.h>
 #include "Math.h"
 #include "WheelSide.h"
+#include "Robot.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -123,6 +124,7 @@ Wheel rightBackWheel(rightBack_PWM_GPIO_Port, rightBack_PWM_Pin, rightBack_Dir_G
 WheelSide leftWheel(leftFrontWheel, leftBackWheel);
 WheelSide rightWheel(rightFrontWheel, rightBackWheel);
 
+Robot robot(leftWheel, rightWheel);
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
@@ -165,7 +167,6 @@ float limitSpeed(float command, float speedMeas)
     }
     return command;
 }
-PID coucou;
 
 PID leftPID(0.5,0,0);
 PID rightPID(0.5,0,0);
@@ -174,6 +175,7 @@ float rightSpeedMeas = 0;
 float speedDes = 200;
 uint32_t time = 0.01;
 
+bool sol = 1;
 
 /* USER CODE END 0 */
 
@@ -240,64 +242,72 @@ int main(void)
 
 	if(posReached ==0)
 	{
-		leftPulse = leftWheel.getPulse();
-		rightPulse = rightWheel.getPulse();
-		leftSpeed = leftWheel.getSpeedMeas();
-		rightSpeed = rightWheel.getSpeedMeas();
-
-		linearPosition = (rightPulse + leftPulse)/2;
-		angularPosition = rightPulse - leftPulse;
-
-		errorDistance = distanceDes - linearPosition;
-		errorAngle = orientationDes - angularPosition;
-
-		if(errorDistance < 10) //orientation correction, position is reached
+		if(sol ==0)
 		{
-			errorDistance = 0;
-			linearPositionPID.resetPID();
+			leftPulse = leftWheel.getPulse();
+			rightPulse = rightWheel.getPulse();
+			leftSpeed = leftWheel.getSpeedMeas();
+			rightSpeed = rightWheel.getSpeedMeas();
 
-			if(fabs(errorAngle) < 5)
+			linearPosition = (rightPulse + leftPulse)/2;
+			angularPosition = rightPulse - leftPulse;
+
+			errorDistance = distanceDes - linearPosition;
+			errorAngle = orientationDes - angularPosition;
+
+			if(errorDistance < 10) //orientation correction, position is reached
 			{
-				printf("angle reached\t");
-				errorAngle = 0;
-				angularPositionPID.resetPID();
-				posReached = 1;
+				errorDistance = 0;
+				linearPositionPID.resetPID();
+
+				if(fabs(errorAngle) < 5)
+				{
+					printf("angle reached\t");
+					errorAngle = 0;
+					angularPositionPID.resetPID();
+					posReached = 1;
+				}
+			}
+
+			speedLinearDesired = linearPositionPID.computePID(errorDistance);
+			speedAngularDesired = angularPositionPID.computePID(errorAngle);
+
+			linearSpeed = (rightSpeed + leftSpeed)/2;
+			angularSpeed = rightSpeed - leftSpeed;
+
+			if(linearPositionPID.isComputed() && angularPositionPID.isComputed())
+			{
+				linearPositionPID.isComputed_ = false;
+				angularPositionPID.isComputed_ = false;
+
+				speedLinearDesiredAf = limitSpeed(speedLinearDesired, linearSpeed);
+				speedAngularDesiredAf = limitSpeed(speedAngularDesired, angularSpeed);
+
+				errorLinearSpeed = speedLinearDesiredAf - linearSpeed;
+				errorAngularSpeed = speedAngularDesiredAf - angularSpeed;
+
+				commandLinear = linearSpeedPID.computePID(errorLinearSpeed);
+				commandAngular = angularSpeedPID.computePID(errorAngularSpeed);
+
+				if(linearSpeedPID.isComputed() && angularSpeedPID.isComputed())
+				{
+					linearSpeedPID.isComputed_ = false;
+					angularSpeedPID.isComputed_ = false;
+
+					rightCommand = commandLinear + commandAngular;
+					leftCommand = commandLinear - commandAngular;
+
+					rightWheel.run(rightCommand);
+					leftWheel.run(leftCommand);
+				}
 			}
 		}
-
-		speedLinearDesired = linearPositionPID.computePID(errorDistance);
-		speedAngularDesired = angularPositionPID.computePID(errorAngle);
-
-		linearSpeed = (rightSpeed + leftSpeed)/2;
-		angularSpeed = rightSpeed - leftSpeed;
-
-		if(linearPositionPID.isComputed() && angularPositionPID.isComputed())
+		else if(sol==1)
 		{
-			linearPositionPID.isComputed_ = false;
-			angularPositionPID.isComputed_ = false;
-
-			speedLinearDesiredAf = limitSpeed(speedLinearDesired, linearSpeed);
-			speedAngularDesiredAf = limitSpeed(speedAngularDesired, angularSpeed);
-
-			errorLinearSpeed = speedLinearDesiredAf - linearSpeed;
-			errorAngularSpeed = speedAngularDesiredAf - angularSpeed;
-
-			commandLinear = linearSpeedPID.computePID(errorLinearSpeed);
-			commandAngular = angularSpeedPID.computePID(errorAngularSpeed);
-
-			if(linearSpeedPID.isComputed() && angularSpeedPID.isComputed())
-			{
-				linearSpeedPID.isComputed_ = false;
-				angularSpeedPID.isComputed_ = false;
-
-				rightCommand = commandLinear + commandAngular;
-				leftCommand = commandLinear - commandAngular;
-
-				rightWheel.run(rightCommand);
-				leftWheel.run(leftCommand);
-			}
+			robot.regulateMotion(distanceDes, orientationDes);
+			sprintf((char *)buffer, "%i\n\r", (int)robot.getLinearPosition());
 		}
-
+		HAL_UART_Transmit(&huart3, buffer, strlen((char *)buffer), 0xFFFFF);
 	}
 	else
 	{
@@ -306,18 +316,19 @@ int main(void)
 		break;
 	}
 
-		//sprintf((char *)buffer, "%i\n\r", rightFrontWheel.getPulse())
+	//sprintf((char *)buffer, "%i\n\r", rightFrontWheel.getPulse());
 
-		//sprintf((char *)buffer, "%i %i %i %i \n\r", leftFrontWheel.getPulse(), rightFrontWheel.getPulse(), leftBackWheel.getPulse(), rightBackWheel.getPulse());
-		//sprintf((char *)buffer, "%i %i %i %i \n\r", (int)leftFrontWheel.getSpeedMeas(), (int)rightFrontWheel.getSpeedMeas(), (int)leftBackWheel.getSpeedMeas(), (int)rightBackWheel.getSpeedMeas());
+	//sprintf((char *)buffer, "%i %i %i %i \n\r", leftFrontWheel.getPulse(), rightFrontWheel.getPulse(), leftBackWheel.getPulse(), rightBackWheel.getPulse());
+	//sprintf((char *)buffer, "%i %i %i %i \n\r", (int)leftFrontWheel.getSpeedMeas(), (int)rightFrontWheel.getSpeedMeas(), (int)leftBackWheel.getSpeedMeas(), (int)rightBackWheel.getSpeedMeas());
 
-		//sprintf((char *)buffer, "%i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse());
-		//sprintf((char *)buffer, "%i \t %i \n\r", (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
+	//sprintf((char *)buffer, "%i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse());
+	//sprintf((char *)buffer, "%i \t %i \n\r", (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
 
-	sprintf((char *)buffer, "%i \t %i \t %i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse(), (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
+	//sprintf((char *)buffer, "%i \t %i \t %i \t %i \n\r", (int)leftWheel.getPulse(), (int)rightWheel.getPulse(), (int)leftWheel.getSpeedMeas(), (int)rightWheel.getSpeedMeas());
 
 
-	HAL_UART_Transmit(&huart3, buffer, strlen((char *)buffer), 0xFFFFF);
+
+
   }
   /* USER CODE END 3 */
 
