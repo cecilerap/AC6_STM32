@@ -15,7 +15,7 @@ class Wheel {
 public:
     //constructor
 	Wheel(GPIO_TypeDef* portSpeed, uint16_t pinSpeed, GPIO_TypeDef* portDir, uint16_t pinDir,
-			GPIO_TypeDef* portA, uint16_t pinA, GPIO_TypeDef* portB, uint16_t pinB);
+			GPIO_TypeDef* portA, uint16_t pinA, GPIO_TypeDef* portB, uint16_t pinB, TIM_HandleTypeDef *timer, __IO uint32_t channel);
 
 	virtual ~Wheel();
 
@@ -39,6 +39,9 @@ private:
 	uint16_t pinA_;
 	GPIO_TypeDef* portB_;
 	uint16_t pinB_;
+
+	__IO uint32_t channel_;
+	TIM_HandleTypeDef * timer_;
 };
 
 #endif /* WHEEL_H_ */

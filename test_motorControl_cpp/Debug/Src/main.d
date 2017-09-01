@@ -29,7 +29,8 @@ Src/main.o: ../Src/main.cpp \
  D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_tim.h \
  D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_tim_ex.h \
  D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart.h \
- D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart_ex.h
+ D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart_ex.h \
+ ../Src/WheelSide.h ../Src/Wheel.h ../Src/PID.h
 
 D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Inc/main.h:
 
@@ -92,3 +93,9 @@ D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Drive
 D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart.h:
 
 D:/CaptainRobot/Controle_moteurs/Solution_STM32/cube/test_motorControl_cpp/Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart_ex.h:
+
+../Src/WheelSide.h:
+
+../Src/Wheel.h:
+
+../Src/PID.h:

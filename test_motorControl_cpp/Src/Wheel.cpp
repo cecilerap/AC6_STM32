@@ -12,9 +12,9 @@
 #ifndef PI
    #define PI 3.14159265358979323846
 #endif
-/*
+
 Wheel::Wheel(GPIO_TypeDef* portSpeed, uint16_t pinSpeed, GPIO_TypeDef* portDir, uint16_t pinDir,
-		GPIO_TypeDef* portA, uint16_t pinA, GPIO_TypeDef* portB, uint16_t pinB)
+		GPIO_TypeDef* portA, uint16_t pinA, GPIO_TypeDef* portB, uint16_t pinB, TIM_HandleTypeDef *timer, __IO uint32_t channel)
 {
 	// TODO Auto-generated constructor stub
 
@@ -27,35 +27,24 @@ Wheel::Wheel(GPIO_TypeDef* portSpeed, uint16_t pinSpeed, GPIO_TypeDef* portDir, 
 	portB_ = portB;
 	pinB_ = pinB;
 
-    pulses_ = 0;
-    prevPulses_ = 0;
-}*/
-Wheel::Wheel(GPIO_TypeDef* portSpeed, uint16_t pinSpeed, GPIO_TypeDef* portDir, uint16_t pinDir, GPIO_TypeDef* portA, uint16_t pinA, GPIO_TypeDef* portB, uint16_t pinB):
-		portSpeed_(portSpeed), portDir_(portDir), pinDir_(pinDir), portA_(portA), pinA_(pinA), portB_(portB), pinB_(pinB)
-{
-	// TODO Auto-generated constructor stub
-
-	portSpeed_ = portSpeed;
-	pinSpeed_ = pinSpeed;
-	portDir_ = portDir;
-	pinDir_ = pinDir;
-	portA_ = portA;
-	pinA_ = pinA;
-	portB_ = portB;
-	pinB_ = pinB;
+	timer_ = timer;
+	channel_ = channel;
 
     pulses_ = 0;
     prevPulses_ = 0;
 }
+
 //methods
+
+
 void Wheel::run(float speed)
 {
-    if(fabs(speed)>100)
+    if(fabs(speed)>255)
     {
-       speed = sign(speed) * 100.0f;
+       speed = sign(speed) * 255.0f;
     }
 
-    //HAL_GPIO_WritePin(portSpeed_, pinSpeed_, fabs(speed/100));
+    __HAL_TIM_SET_COMPARE(timer_, channel_, (uint8_t) fabs(speed));
 
     if(speed>0)
     {
@@ -64,6 +53,7 @@ void Wheel::run(float speed)
     else
     {
     	HAL_GPIO_WritePin(portDir_, pinDir_, GPIO_PIN_RESET);
+    	//HAL_GPIO_TogglePin(portDir_, pinDir_);
     }
    // directionPin_ = speed>0;
 }

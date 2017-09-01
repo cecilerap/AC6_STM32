@@ -56,6 +56,8 @@
 #define leftFront_Dir_GPIO_Port GPIOA
 #define rightFront_Dir_Pin GPIO_PIN_6
 #define rightFront_Dir_GPIO_Port GPIOA
+#define rightFront_PWM_Pin GPIO_PIN_1
+#define rightFront_PWM_GPIO_Port GPIOB
 #define rightBack_pinA_Pin GPIO_PIN_12
 #define rightBack_pinA_GPIO_Port GPIOF
 #define rightBack_pinA_EXTI_IRQn EXTI15_10_IRQn
@@ -73,10 +75,6 @@
 #define rightFront_pinB_EXTI_IRQn EXTI15_10_IRQn
 #define leftBack_Dir_Pin GPIO_PIN_13
 #define leftBack_Dir_GPIO_Port GPIOE
-#define rightFront_PWM_Pin GPIO_PIN_15
-#define rightFront_PWM_GPIO_Port GPIOB
-#define leftBack_PWM_Pin GPIO_PIN_12
-#define leftBack_PWM_GPIO_Port GPIOD
 #define rightBack_Dir_Pin GPIO_PIN_14
 #define rightBack_Dir_GPIO_Port GPIOD
 #define rightBack_pinB_Pin GPIO_PIN_15
@@ -86,6 +84,8 @@
 #define leftFront_PWM_GPIO_Port GPIOC
 #define rightBack_PWM_Pin GPIO_PIN_7
 #define rightBack_PWM_GPIO_Port GPIOC
+#define leftBack_PWM_Pin GPIO_PIN_8
+#define leftBack_PWM_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 
